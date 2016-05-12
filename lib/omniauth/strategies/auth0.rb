@@ -1,5 +1,6 @@
 require "base64"
 require "omniauth-oauth2"
+require 'logger'
 
 module OmniAuth
   module Strategies
@@ -84,11 +85,26 @@ module OmniAuth
 
       def raw_info
         @raw_info ||= access_token.get(options.client_options.userinfo_url).parsed
+        log_request
+        @raw_info
       end
 
       def self.client_info_querystring
         client_info = JSON.dump({name: 'omniauth-auth0', version: OmniAuth::Auth0::VERSION})
         "auth0Client=" + Base64.urlsafe_encode64(client_info)
+      end
+
+      def log_request
+        return unless ENV["AUTH_DEBUG"]
+        logger.info "OmniAuth | #{full_raw_info_url} result: #{@_raw_info.inspect}"
+      end
+
+      def logger
+        @logger ||= begin
+                      SSO_LOGGER || Rails.logger
+                    rescue
+                      Logger.new(STDOUT)
+                    end
       end
     end
   end
